@@ -3,6 +3,7 @@
 #include "ui/UIScale9Sprite.h"
 
 #include "HangulTF.h"
+#include "Hangul.h"
 
 USING_NS_CC;
 using namespace ui;

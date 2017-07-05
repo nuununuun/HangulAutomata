@@ -3,10 +3,9 @@
 #include "platform/CCFileUtils.h"
 #include "base/ccUTF8.h"
 
-#include "Hangul.h"
-
 #include <imm.h>
 #include <string>
+#include <algorithm>
 
 #pragma comment(lib, "imm32")
 
@@ -16,11 +15,10 @@
 USING_NS_CC;
 using namespace std;
 
-const std::string HangulTF::ENG_KEY = "rRseEfaqQtTdwWczxvgkoiOjpuPhynbml";
-const std::u16string HangulTF::KOR_KEY = u"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎㅏㅐㅑㅒㅓㅔㅕㅖㅗㅛㅜㅠㅡㅣ";
-const std::u16string HangulTF::CHO_DATA = u"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
-const std::u16string HangulTF::JUNG_DATA = u"ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
-const std::u16string HangulTF::JONG_DATA = u"ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ";
+const std::string HangulTF::ENG = "rRseEfaqQtTdwWczxvgkoiOjpuPhynbml";
+const std::u16string HangulTF::CHO = u"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const std::u16string HangulTF::JUNG = u"ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
+const std::u16string HangulTF::JONG = u"ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ";
 
 string toUTF8(const std::u16string & u16) {
 	string ret;
@@ -105,7 +103,9 @@ void HangulTF::insertText(const char * text, size_t len) {
 		if (_cursorEnabled) {
 			StringUtils::StringUTF8 stringUTF8;
 
-			insert = HangulAutomata::getInstance()->combine(insert);
+
+
+			insert = hangulAutomata(insert);
 
 			std::size_t countInsertChar = _calcCharCount(insert.c_str());
 			_charCount += countInsertChar;
@@ -136,7 +136,7 @@ void HangulTF::insertText(const char * text, size_t len) {
 	detachWithIME();
 }
 
-void HangulTF::deleteBackward() {
+void HangulTF::deleteBack() {
 	size_t len = _inputText.length();
 	if (!len) {
 		// there is no string
@@ -158,7 +158,6 @@ void HangulTF::deleteBackward() {
 	// if all text deleted, show placeholder string
 	if (len <= deleteLen) {
 		_inputText = "";
-		_saveText = "";
 		_charCount = 0;
 		setCursorPosition(0);
 		setString(_inputText);
@@ -184,6 +183,11 @@ void HangulTF::deleteBackward() {
 	}
 }
 
+void HangulTF::deleteBackward() {
+	deleteBack();
+	clearState();
+}
+
 void HangulTF::controlKey(EventKeyboard::KeyCode keyCode) {
 	if (_cursorEnabled) {
 		switch (keyCode) {
@@ -191,10 +195,14 @@ void HangulTF::controlKey(EventKeyboard::KeyCode keyCode) {
 		case EventKeyboard::KeyCode::KEY_KP_HOME:
 			setCursorPosition(0);
 			updateCursorDisplayText();
+
+			clearState();
 			break;
 		case EventKeyboard::KeyCode::KEY_END:
 			setCursorPosition(_charCount);
 			updateCursorDisplayText();
+
+			clearState();
 			break;
 		case EventKeyboard::KeyCode::KEY_DELETE:
 		case EventKeyboard::KeyCode::KEY_KP_DELETE:
@@ -206,28 +214,379 @@ void HangulTF::controlKey(EventKeyboard::KeyCode keyCode) {
 				setCursorPosition(_cursorPosition);
 				_charCount = stringUTF8.length();
 				setString(stringUTF8.getAsCharSequence());
+
+				clearState();
 			}
 			break;
 		case EventKeyboard::KeyCode::KEY_LEFT_ARROW:
 			if (_cursorPosition) {
 				setCursorPosition(_cursorPosition - 1);
 				updateCursorDisplayText();
+
+				clearState();
 			}
 			break;
 		case EventKeyboard::KeyCode::KEY_RIGHT_ARROW:
 			if (_cursorPosition < (std::size_t)_charCount) {
 				setCursorPosition(_cursorPosition + 1);
 				updateCursorDisplayText();
+
+				clearState();
 			}
 			break;
 		case EventKeyboard::KeyCode::KEY_ESCAPE:
+			clearState();
 			detachWithIME();
 			break;
 		case EventKeyboard::KeyCode::KEY_ENTER:
+			clearState();
 			detachWithIME();
 			break;
 		default:
 			break;
 		}
 	}
+}
+
+string HangulTF::hangulAutomata(const string& str) {
+	string insert = str;
+
+	int key = ENG.find(insert);
+	/// A나 S등이 입력됐을 때 발생하는 오류 방지
+	if (key == -1) {
+		std::transform(insert.begin(), insert.end(), insert.begin(), ::tolower);
+		key = ENG.find(insert);
+	}
+	switch (state) {
+	case 0:
+		if (key <= 18) { /// 자음
+			cho = key;
+			/// 미리보기
+			insert = toUTF8(u16string(1, CHO[cho]));
+			state = 1;
+		} else { /// 모음
+			jung = calcVowel(key);
+			/// 미리보기
+			insert = toUTF8(u16string(1, JUNG[jung]));
+			state = 2;
+		}
+		break;
+	case 1:
+		deleteBack();
+		if (key <= 18) {
+			insert = toUTF8(u16string(1, CHO[cho]));
+			cho = key;
+			/// 미리보기
+			insert += toUTF8(u16string(1, CHO[cho]));
+
+			state = 1;
+		} else {
+			jung = calcVowel(key);
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			state = 3;
+		}
+		break;
+	case 2:
+		deleteBack();
+		if (key <= 18) {
+			insert = toUTF8(u16string(1, JUNG[jung]));
+			cho = key;
+			/// 미리보기
+			insert += toUTF8(u16string(1, CHO[cho]));
+
+			state = 1;
+		} else {
+			int tmp = calcJungComplex(key);
+			if (tmp != -1) { /// 복합 중성
+				jung = tmp;
+				/// 미리보기
+				insert = toUTF8(u16string(1, JUNG[jung]));
+				state = 4;
+			} else { /// 모음
+				insert = toUTF8(u16string(1, JUNG[jung]));
+				jung = calcVowel(key);
+				/// 미리보기
+				insert += toUTF8(u16string(1, JUNG[jung]));
+				state = 2;
+			}
+		}
+		break;
+	case 3:
+		deleteBack();
+		if (key <= 18) {
+			jong = calcJong(key);
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			state = 5;
+		} else {
+			int tmp = calcJungComplex(key);
+			if (tmp != -1) { /// 복합 중성
+				jung = tmp;
+				/// 미리보기
+				insert = toUTF8(combineHangul(cho, jung, jong));
+				state = 6;
+			} else { /// 모음
+				insert = toUTF8(combineHangul(cho, jung, jong));
+				jung = calcVowel(key);
+				/// 미리보기
+				insert += toUTF8(u16string(1, JUNG[jung]));
+				state = 2;
+			}
+		}
+		break;
+	case 4:
+		deleteBack();
+		if (key <= 18) {
+			insert = toUTF8(u16string(1, JUNG[jung]));
+			cho = key;
+			/// 미리보기
+			insert += toUTF8(u16string(1, CHO[cho]));
+			state = 1;
+		} else {
+			insert = toUTF8(u16string(1, JUNG[jung]));
+			jung = calcVowel(key);
+			/// 미리보기
+			insert += toUTF8(u16string(1, JUNG[jung]));
+			state = 2;
+		}
+		break;
+	case 5:
+		deleteBack();
+		if (key <= 18) {
+			int tmp = calcJongComplex(key);
+			if (tmp != -1) {
+				jong = tmp;
+				insert = toUTF8(combineHangul(cho, jung, jong));
+				state = 7;
+			} else {
+				insert = toUTF8(combineHangul(cho, jung, jong));
+				cho = key;
+				jung = -1;
+				jong = -1;
+				/// 미리보기
+				insert += toUTF8(u16string(1, CHO[cho]));
+				state = 1;
+			}
+		} else {
+			insert = toUTF8(combineHangul(cho, jung, -1));
+			cho = jongToCho(jong);
+			jung = calcVowel(key);
+			jong = -1;
+			/// 미리보기
+			insert += toUTF8(combineHangul(cho, jung, -1));
+			state = 3;
+		}
+		break;
+	case 6:
+		deleteBack();
+		if (key <= 18) {
+			jong = calcJong(key);
+			/// 미리보기
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			state = 8;
+		} else {
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			jung = calcVowel(key);
+			/// 미리보기
+			insert += toUTF8(u16string(1, JUNG[jung]));
+			state = 2;
+		}
+		break;
+	case 7:
+		deleteBack();
+		if (key <= 18) {
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			cho = key;
+			jung = -1;
+			jong = -1;
+			/// 미리보기
+			insert += toUTF8(u16string(1, CHO[cho]));
+			state = 1;
+		} else {
+			int tmp = splitJongComplex();
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			cho = tmp;
+			jung = calcVowel(key);
+			jong = -1;
+			/// 미리보기
+			insert += toUTF8(combineHangul(cho, jung, jong));
+			state = 3;
+		}
+		break;
+	case 8:
+		deleteBack();
+		if (key <= 18) {
+			int tmp = calcJongComplex(key);
+			if (tmp != -1) {
+				jong = tmp;
+				insert = toUTF8(combineHangul(cho, jung, jong));
+				state = 9;
+			} else {
+				insert = toUTF8(combineHangul(cho, jung, jong));
+				cho = key;
+				jung = -1;
+				jong = -1;
+				/// 미리보기
+				insert += toUTF8(u16string(1, CHO[cho]));
+				state = 1;
+			}
+		} else {
+			insert = toUTF8(combineHangul(cho, jung, -1));
+			cho = jongToCho(jong);
+			jung = calcVowel(key);
+			jong = -1;
+			/// 미리보기
+			insert += toUTF8(combineHangul(cho, jung, -1));
+			state = 3;
+		}
+		break;
+	case 9:
+		deleteBack();
+		if (key <= 18) {
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			cho = key;
+			jung = -1;
+			jong = -1;
+			/// 미리보기
+			insert += toUTF8(u16string(1, CHO[cho]));
+			state = 1;
+		} else {
+			int tmp = splitJongComplex();
+			insert = toUTF8(combineHangul(cho, jung, jong));
+			cho = tmp;
+			jung = calcVowel(key);
+			jong = -1;
+			/// 미리보기
+			insert += toUTF8(combineHangul(cho, jung, jong));
+			state = 3;
+		}
+		break;
+	}
+
+	return insert;
+}
+
+u16string HangulTF::combineHangul(int cho, int jung, int jong) {
+	u16string ret(1, 0xac00 + cho * 21 * 28 + jung * 28 + jong + 1);
+	return  ret;
+}
+
+string HangulTF::toUTF8(const std::u16string & u16) {
+	string ret;
+	cocos2d::StringUtils::UTF16ToUTF8(u16, ret);
+	return ret;
+}
+
+int HangulTF::calcVowel(int key) {
+	switch (key) {
+	case 28: return 12; /* ㅛ */
+	case 29: return 13; /* ㅜ */
+	case 30: return 17; /* ㅠ */
+	case 31: return 18; /* ㅡ */
+	case 32: return 20; /* ㅣ */
+	}
+	return key - 19;
+}
+
+int HangulTF::calcJong(int key) {
+	switch (key) {
+	case 2:  return 3;  /* ㄴ */
+	case 3:  return 6;  /* ㄷ */
+	case 5:  return 7;  /* ㄹ */
+	case 6:  return 15; /* ㅁ */
+	case 7:  return 16; /* ㅂ */
+	case 9:  return 18; /* ㅅ */
+	case 10: return 19; /* ㅆ */
+	case 11: return 20; /* ㅇ */
+	case 12: return 21; /* ㅈ */
+	case 14: return 22; /* ㅊ */
+	case 15: return 23; /* ㅋ */
+	case 16: return 24; /* ㅌ */
+	case 17: return 25; /* ㅍ */
+	case 18: return 26; /* ㅎ */
+	}
+	return key;
+}
+
+int HangulTF::jongToCho(int jong) {
+	switch (jong) {
+	case 3:  return 2;	/* ㄴ */
+	case 6:  return 3;	/* ㄷ */
+	case 7:  return 5;  /* ㄹ */
+	case 15: return 6;  /* ㅁ */
+	case 16: return 7;  /* ㅂ */
+	case 18: return 9;  /* ㅅ */
+	case 20: return 11;	/* ㅇ */
+	case 21: return 12; /* ㅈ */
+	case 22: return 14; /* ㅊ */
+	case 23: return 15; /* ㅋ */
+	case 24: return 16; /* ㅌ */
+	case 25: return 17; /* ㅍ */
+	case 26: return 18; /* ㅎ */
+	}
+	return jong;
+}
+
+int HangulTF::splitJongComplex() {
+	switch (jong) {
+	case 2:	 jong = 0; return 9;	/* ㄳ */
+	case 4:	 jong = 3; return 12;	/* ㄵ */
+	case 5:	 jong = 3; return 18;	/* ㄶ */
+	case 8:	 jong = 7; return 0;	/* ㄺ */
+	case 9:	 jong = 7; return 6;	/* ㄻ */
+	case 10: jong = 7; return 7;	/* ㄼ */
+	case 11: jong = 7; return 9;	/* ㄽ */
+	case 12: jong = 7; return 16;	/* ㄾ */
+	case 13: jong = 7; return 17;	/* ㄿ */
+	case 14: jong = 7; return 18;	/* ㅀ */
+	}
+	return -1;
+}
+
+int HangulTF::calcJungComplex(int key) {
+	key = calcVowel(key);
+	switch (jung) {
+	case 8: 
+		if		(key == 0)	return 9;	/* ㅘ */
+		else if (key == 1)	return 10;	/* ㅙ */
+		else if (key == 20)	return 11;	/* ㅚ */
+		break;
+	case 13:
+		if		(key == 4)	return 14;	/* ㅝ */
+		else if (key == 5)	return 15;	/* ㅞ */
+		else if (key == 20) return 16;	/* ㅟ */
+		break;
+	case 18:
+		if		(key == 20) return 19;	/* ㅢ */
+	}
+	return -1;
+}
+
+int HangulTF::calcJongComplex(int key) {
+	key = calcJong(key);
+	switch (jong) {
+	case 0:
+		if		(key == 18) return 2;	/* ㄳ */
+		break;
+	case 3:
+		if		(key == 21) return 4;	/* ㄵ */
+		else if (key == 27) return 5;	/* ㄶ */
+		break;
+	case 7:
+		if		(key == 0)	return 8;	/* ㄺ */
+		else if (key == 15) return 9;	/* ㄻ */
+		else if (key == 16) return 10;	/* ㄼ */
+		else if (key == 18) return 11;	/* ㄽ */
+		else if (key == 24) return 12;	/* ㄾ */
+		else if (key == 25) return 13;	/* ㄿ */
+		else if (key == 26) return 14;	/* ㅀ */
+		break;
+	}
+	return -1;
+}
+
+void HangulTF::clearState() {
+	state = 0;
+	cho = -1;
+	jung = -1;
+	jong = -1;
 }

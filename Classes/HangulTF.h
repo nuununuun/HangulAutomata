@@ -13,16 +13,28 @@ public:
 	static HangulTF * textFieldWithPlaceHolder(const std::string& placeholder, const std::string& fontName, float fontSize);
 
 protected:
-	std::string engToKor(const std::string &eng);
 	virtual void insertText(const char * text, size_t len) override;
 	virtual void deleteBackward() override;
 	virtual void controlKey(cocos2d::EventKeyboard::KeyCode keyCode) override;
 
-	std::string _saveText;
-	int _startIdx = 0, _combCount = 0, _mode = 0, _bufCount = 0;
+	std::string hangulAutomata(const std::string& str);
 
-	static const std::string ENG_KEY;
-	static const std::u16string KOR_KEY, CHO_DATA, JUNG_DATA, JONG_DATA;
+	void deleteBack();
+
+	std::string toUTF8(const std::u16string& u16);
+	std::u16string combineHangul(int cho, int jung, int jong);
+	int calcVowel(int key);
+	int calcJong(int key);
+	int jongToCho(int jong);
+	int splitJongComplex();
+	int calcJungComplex(int key);
+	int calcJongComplex(int key);
+	void clearState();
+
+	static const std::string ENG;
+	static const std::u16string CHO, JUNG, JONG;
+
+	int state = 0, cho = -1, jung = -1, jong = -1;
 };
 
 #endif
