@@ -34,6 +34,8 @@ protected:
 	static const std::string ENG;
 	static const std::u16string CHO, JUNG, JONG;
 
+	bool hangulMode = true;
+
 	int state = 0, cho = -1, jung = -1, jong = -1;
 };
 

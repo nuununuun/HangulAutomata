@@ -103,9 +103,16 @@ void HangulTF::insertText(const char * text, size_t len) {
 		if (_cursorEnabled) {
 			StringUtils::StringUTF8 stringUTF8;
 
+			if (hangulMode) {
+				bool isAlphabet = false;
+				/// 입력된 글자가 특수문자인 경우 그대로 출력
+				for (auto &i : insert) {
+					if ((i >= 'A' && i <= 'Z') || (i >= 'a' && i <= 'z')) isAlphabet = true;
+				}
 
-
-			insert = hangulAutomata(insert);
+				if (isAlphabet) insert = hangulAutomata(insert);
+				else clearState();
+			}
 
 			std::size_t countInsertChar = _calcCharCount(insert.c_str());
 			_charCount += countInsertChar;
@@ -230,7 +237,6 @@ void HangulTF::controlKey(EventKeyboard::KeyCode keyCode) {
 			if (_cursorPosition < (std::size_t)_charCount) {
 				setCursorPosition(_cursorPosition + 1);
 				updateCursorDisplayText();
-
 				clearState();
 			}
 			break;
@@ -241,6 +247,10 @@ void HangulTF::controlKey(EventKeyboard::KeyCode keyCode) {
 		case EventKeyboard::KeyCode::KEY_ENTER:
 			clearState();
 			detachWithIME();
+			break;
+		case EventKeyboard::KeyCode::KEY_RIGHT_ALT:
+			clearState();
+			hangulMode = !hangulMode;
 			break;
 		default:
 			break;
