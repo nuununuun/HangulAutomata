@@ -1,4 +1,4 @@
-#ifndef _HANGUL_H_
+﻿#ifndef _HANGUL_H_
 #define _HANGUL_H_
 
 #include "2d/CCTextFieldTTF.h"

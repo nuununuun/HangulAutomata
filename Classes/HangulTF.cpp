@@ -1,4 +1,4 @@
-#include "HangulTF.h"
+ï»¿#include "HangulTF.h"
 
 #include "platform/CCFileUtils.h"
 #include "base/ccUTF8.h"
@@ -16,9 +16,9 @@ USING_NS_CC;
 using namespace std;
 
 const std::string HangulTF::ENG = "rRseEfaqQtTdwWczxvgkoiOjpuPhynbml";
-const std::u16string HangulTF::CHO = u"¤¡¤¢¤¤¤§¤¨¤©¤±¤²¤³¤µ¤¶¤·¤¸¤¹¤º¤»¤¼¤½¤¾";
-const std::u16string HangulTF::JUNG = u"¤¿¤À¤Á¤Â¤Ã¤Ä¤Å¤Æ¤Ç¤È¤É¤Ê¤Ë¤Ì¤Í¤Î¤Ï¤Ð¤Ñ¤Ò¤Ó";
-const std::u16string HangulTF::JONG = u"¤¡¤¢¤£¤¤¤¥¤¦¤§¤©¤ª¤«¤¬¤­¤®¤¯¤°¤±¤²¤´¤µ¤¶¤·¤¸¤º¤»¤¼¤½¤¾";
+const std::u16string HangulTF::CHO = u"ã„±ã„²ã„´ã„·ã„¸ã„¹ã…ã…‚ã…ƒã……ã…†ã…‡ã…ˆã…‰ã…Šã…‹ã…Œã…ã…Ž";
+const std::u16string HangulTF::JUNG = u"ã…ã…ã…‘ã…’ã…“ã…”ã…•ã…–ã…—ã…˜ã…™ã…šã…›ã…œã…ã…žã…Ÿã… ã…¡ã…¢ã…£";
+const std::u16string HangulTF::JONG = u"ã„±ã„²ã„³ã„´ã„µã„¶ã„·ã„¹ã„ºã„»ã„¼ã„½ã„¾ã„¿ã…€ã…ã…‚ã…„ã……ã…†ã…‡ã…ˆã…Šã…‹ã…Œã…ã…Ž";
 
 string toUTF8(const std::u16string & u16) {
 	string ret;
@@ -105,7 +105,7 @@ void HangulTF::insertText(const char * text, size_t len) {
 
 			if (hangulMode) {
 				bool isAlphabet = false;
-				/// ÀÔ·ÂµÈ ±ÛÀÚ°¡ Æ¯¼ö¹®ÀÚÀÎ °æ¿ì ±×´ë·Î Ãâ·Â
+				/// ìž…ë ¥ëœ ê¸€ìžê°€ íŠ¹ìˆ˜ë¬¸ìžì¸ ê²½ìš° ê·¸ëŒ€ë¡œ ì¶œë ¥
 				for (auto &i : insert) {
 					if ((i >= 'A' && i <= 'Z') || (i >= 'a' && i <= 'z')) isAlphabet = true;
 				}
@@ -262,21 +262,21 @@ string HangulTF::hangulAutomata(const string& str) {
 	string insert = str;
 
 	int key = ENG.find(insert);
-	/// A³ª SµîÀÌ ÀÔ·ÂµÆÀ» ¶§ ¹ß»ýÇÏ´Â ¿À·ù ¹æÁö
+	/// Aë‚˜ Së“±ì´ ìž…ë ¥ëì„ ë•Œ ë°œìƒí•˜ëŠ” ì˜¤ë¥˜ ë°©ì§€
 	if (key == -1) {
 		std::transform(insert.begin(), insert.end(), insert.begin(), ::tolower);
 		key = ENG.find(insert);
 	}
 	switch (state) {
 	case 0:
-		if (key <= 18) { /// ÀÚÀ½
+		if (key <= 18) { /// ìžìŒ
 			cho = key;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert = toUTF8(u16string(1, CHO[cho]));
 			state = 1;
-		} else { /// ¸ðÀ½
+		} else { /// ëª¨ìŒ
 			jung = calcVowel(key);
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert = toUTF8(u16string(1, JUNG[jung]));
 			state = 2;
 		}
@@ -286,7 +286,7 @@ string HangulTF::hangulAutomata(const string& str) {
 		if (key <= 18) {
 			insert = toUTF8(u16string(1, CHO[cho]));
 			cho = key;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, CHO[cho]));
 
 			state = 1;
@@ -301,21 +301,21 @@ string HangulTF::hangulAutomata(const string& str) {
 		if (key <= 18) {
 			insert = toUTF8(u16string(1, JUNG[jung]));
 			cho = key;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, CHO[cho]));
 
 			state = 1;
 		} else {
 			int tmp = calcJungComplex(key);
-			if (tmp != -1) { /// º¹ÇÕ Áß¼º
+			if (tmp != -1) { /// ë³µí•© ì¤‘ì„±
 				jung = tmp;
-				/// ¹Ì¸®º¸±â
+				/// ë¯¸ë¦¬ë³´ê¸°
 				insert = toUTF8(u16string(1, JUNG[jung]));
 				state = 4;
-			} else { /// ¸ðÀ½
+			} else { /// ëª¨ìŒ
 				insert = toUTF8(u16string(1, JUNG[jung]));
 				jung = calcVowel(key);
-				/// ¹Ì¸®º¸±â
+				/// ë¯¸ë¦¬ë³´ê¸°
 				insert += toUTF8(u16string(1, JUNG[jung]));
 				state = 2;
 			}
@@ -329,15 +329,15 @@ string HangulTF::hangulAutomata(const string& str) {
 			state = 5;
 		} else {
 			int tmp = calcJungComplex(key);
-			if (tmp != -1) { /// º¹ÇÕ Áß¼º
+			if (tmp != -1) { /// ë³µí•© ì¤‘ì„±
 				jung = tmp;
-				/// ¹Ì¸®º¸±â
+				/// ë¯¸ë¦¬ë³´ê¸°
 				insert = toUTF8(combineHangul(cho, jung, jong));
 				state = 6;
-			} else { /// ¸ðÀ½
+			} else { /// ëª¨ìŒ
 				insert = toUTF8(combineHangul(cho, jung, jong));
 				jung = calcVowel(key);
-				/// ¹Ì¸®º¸±â
+				/// ë¯¸ë¦¬ë³´ê¸°
 				insert += toUTF8(u16string(1, JUNG[jung]));
 				state = 2;
 			}
@@ -348,13 +348,13 @@ string HangulTF::hangulAutomata(const string& str) {
 		if (key <= 18) {
 			insert = toUTF8(u16string(1, JUNG[jung]));
 			cho = key;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, CHO[cho]));
 			state = 1;
 		} else {
 			insert = toUTF8(u16string(1, JUNG[jung]));
 			jung = calcVowel(key);
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, JUNG[jung]));
 			state = 2;
 		}
@@ -372,7 +372,7 @@ string HangulTF::hangulAutomata(const string& str) {
 				cho = key;
 				jung = -1;
 				jong = -1;
-				/// ¹Ì¸®º¸±â
+				/// ë¯¸ë¦¬ë³´ê¸°
 				insert += toUTF8(u16string(1, CHO[cho]));
 				state = 1;
 			}
@@ -381,7 +381,7 @@ string HangulTF::hangulAutomata(const string& str) {
 			cho = jongToCho(jong);
 			jung = calcVowel(key);
 			jong = -1;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(combineHangul(cho, jung, -1));
 			state = 3;
 		}
@@ -390,13 +390,13 @@ string HangulTF::hangulAutomata(const string& str) {
 		deleteBack();
 		if (key <= 18) {
 			jong = calcJong(key);
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert = toUTF8(combineHangul(cho, jung, jong));
 			state = 8;
 		} else {
 			insert = toUTF8(combineHangul(cho, jung, jong));
 			jung = calcVowel(key);
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, JUNG[jung]));
 			state = 2;
 		}
@@ -408,7 +408,7 @@ string HangulTF::hangulAutomata(const string& str) {
 			cho = key;
 			jung = -1;
 			jong = -1;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, CHO[cho]));
 			state = 1;
 		} else {
@@ -417,7 +417,7 @@ string HangulTF::hangulAutomata(const string& str) {
 			cho = tmp;
 			jung = calcVowel(key);
 			jong = -1;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(combineHangul(cho, jung, jong));
 			state = 3;
 		}
@@ -435,7 +435,7 @@ string HangulTF::hangulAutomata(const string& str) {
 				cho = key;
 				jung = -1;
 				jong = -1;
-				/// ¹Ì¸®º¸±â
+				/// ë¯¸ë¦¬ë³´ê¸°
 				insert += toUTF8(u16string(1, CHO[cho]));
 				state = 1;
 			}
@@ -444,7 +444,7 @@ string HangulTF::hangulAutomata(const string& str) {
 			cho = jongToCho(jong);
 			jung = calcVowel(key);
 			jong = -1;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(combineHangul(cho, jung, -1));
 			state = 3;
 		}
@@ -456,7 +456,7 @@ string HangulTF::hangulAutomata(const string& str) {
 			cho = key;
 			jung = -1;
 			jong = -1;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(u16string(1, CHO[cho]));
 			state = 1;
 		} else {
@@ -465,7 +465,7 @@ string HangulTF::hangulAutomata(const string& str) {
 			cho = tmp;
 			jung = calcVowel(key);
 			jong = -1;
-			/// ¹Ì¸®º¸±â
+			/// ë¯¸ë¦¬ë³´ê¸°
 			insert += toUTF8(combineHangul(cho, jung, jong));
 			state = 3;
 		}
@@ -488,66 +488,67 @@ string HangulTF::toUTF8(const std::u16string & u16) {
 
 int HangulTF::calcVowel(int key) {
 	switch (key) {
-	case 28: return 12; /* ¤Ë */
-	case 29: return 13; /* ¤Ì */
-	case 30: return 17; /* ¤Ð */
-	case 31: return 18; /* ¤Ñ */
-	case 32: return 20; /* ¤Ó */
+	case 28: return 12;	/* ã…› */
+	case 29: return 13;	/* ã…œ */
+	case 30: return 17;	/* ã…  */
+	case 31: return 18;	/* ã…¡ */
+	case 32: return 20;	/* ã…£ */
 	}
 	return key - 19;
 }
 
 int HangulTF::calcJong(int key) {
 	switch (key) {
-	case 2:  return 3;  /* ¤¤ */
-	case 3:  return 6;  /* ¤§ */
-	case 5:  return 7;  /* ¤© */
-	case 6:  return 15; /* ¤± */
-	case 7:  return 16; /* ¤² */
-	case 9:  return 18; /* ¤µ */
-	case 10: return 19; /* ¤¶ */
-	case 11: return 20; /* ¤· */
-	case 12: return 21; /* ¤¸ */
-	case 14: return 22; /* ¤º */
-	case 15: return 23; /* ¤» */
-	case 16: return 24; /* ¤¼ */
-	case 17: return 25; /* ¤½ */
-	case 18: return 26; /* ¤¾ */
+	case 2: return 3;	/* ã„´ */
+	case 3: return 6;	/* ã„· */
+	case 5: return 7;	/* ã„¹ */
+	case 6: return 15;	/* ã… */
+	case 7: return 16;	/* ã…‚ */
+	case 9: return 18;	/* ã…… */
+	case 10: return 19;	/* ã…† */
+	case 11: return 20;	/* ã…‡ */
+	case 12: return 21;	/* ã…ˆ */
+	case 14: return 22;	/* ã…Š */
+	case 15: return 23;	/* ã…‹ */
+	case 16: return 24;	/* ã…Œ */
+	case 17: return 25;	/* ã… */
+	case 18: return 26;	/* ã…Ž */
 	}
 	return key;
 }
 
 int HangulTF::jongToCho(int jong) {
 	switch (jong) {
-	case 3:  return 2;	/* ¤¤ */
-	case 6:  return 3;	/* ¤§ */
-	case 7:  return 5;  /* ¤© */
-	case 15: return 6;  /* ¤± */
-	case 16: return 7;  /* ¤² */
-	case 18: return 9;  /* ¤µ */
-	case 20: return 11;	/* ¤· */
-	case 21: return 12; /* ¤¸ */
-	case 22: return 14; /* ¤º */
-	case 23: return 15; /* ¤» */
-	case 24: return 16; /* ¤¼ */
-	case 25: return 17; /* ¤½ */
-	case 26: return 18; /* ¤¾ */
+	case 3: return 2;	/* ã„´ */
+	case 6: return 3;	/* ã„· */
+	case 7: return 5;	/* ã„¹ */
+	case 15: return 6;	/* ã… */
+	case 16: return 7;	/* ã…‚ */
+	case 18: return 9;	/* ã…… */
+	case 19: return 10;	/* ã…† */
+	case 20: return 11;	/* ã…‡ */
+	case 21: return 12;	/* ã…ˆ */
+	case 22: return 14;	/* ã…Š */
+	case 23: return 15;	/* ã…‹ */
+	case 24: return 16;	/* ã…Œ */
+	case 25: return 17;	/* ã… */
+	case 26: return 18;	/* ã…Ž */
 	}
 	return jong;
 }
 
 int HangulTF::splitJongComplex() {
 	switch (jong) {
-	case 2:	 jong = 0; return 9;	/* ¤£ */
-	case 4:	 jong = 3; return 12;	/* ¤¥ */
-	case 5:	 jong = 3; return 18;	/* ¤¦ */
-	case 8:	 jong = 7; return 0;	/* ¤ª */
-	case 9:	 jong = 7; return 6;	/* ¤« */
-	case 10: jong = 7; return 7;	/* ¤¬ */
-	case 11: jong = 7; return 9;	/* ¤­ */
-	case 12: jong = 7; return 16;	/* ¤® */
-	case 13: jong = 7; return 17;	/* ¤¯ */
-	case 14: jong = 7; return 18;	/* ¤° */
+	case 2: jong = 0; return 9;		/* ã„³ */
+	case 4: jong = 3; return 12;	/* ã„µ */
+	case 5: jong = 3; return 18;	/* ã„¶ */
+	case 8: jong = 7; return 0;		/* ã„º */
+	case 9: jong = 7; return 6;		/* ã„» */
+	case 10: jong = 7; return 7;	/* ã„¼ */
+	case 11: jong = 7; return 9;	/* ã„½ */
+	case 12: jong = 7; return 16;	/* ã„¾ */
+	case 13: jong = 7; return 17;	/* ã„¿ */
+	case 14: jong = 7; return 18;	/* ã…€ */
 	}
 	return -1;
 }
@@ -556,17 +557,17 @@ int HangulTF::calcJungComplex(int key) {
 	key = calcVowel(key);
 	switch (jung) {
 	case 8: 
-		if		(key == 0)	return 9;	/* ¤È */
-		else if (key == 1)	return 10;	/* ¤É */
-		else if (key == 20)	return 11;	/* ¤Ê */
+		if (key == 0) return 9;			/* ã…˜ */
+		else if (key == 1) return 10;	/* ã…™ */
+		else if (key == 20) return 11;	/* ã…š */
 		break;
 	case 13:
-		if		(key == 4)	return 14;	/* ¤Í */
-		else if (key == 5)	return 15;	/* ¤Î */
-		else if (key == 20) return 16;	/* ¤Ï */
+		if (key == 4) return 14;		/* ã… */
+		else if (key == 5) return 15;	/* ã…ž */
+		else if (key == 20) return 16;	/* ã…Ÿ */
 		break;
 	case 18:
-		if		(key == 20) return 19;	/* ¤Ò */
+		if (key == 20) return 19;		/* ã…¢ */
 	}
 	return -1;
 }
@@ -575,20 +576,20 @@ int HangulTF::calcJongComplex(int key) {
 	key = calcJong(key);
 	switch (jong) {
 	case 0:
-		if		(key == 18) return 2;	/* ¤£ */
+		if (key == 18) return 2;		/* ã„³ */
 		break;
 	case 3:
-		if		(key == 21) return 4;	/* ¤¥ */
-		else if (key == 27) return 5;	/* ¤¦ */
+		if (key == 21) return 4;		/* ã„µ */
+		else if (key == 27) return 5;	/* ã„¶ */
 		break;
 	case 7:
-		if		(key == 0)	return 8;	/* ¤ª */
-		else if (key == 15) return 9;	/* ¤« */
-		else if (key == 16) return 10;	/* ¤¬ */
-		else if (key == 18) return 11;	/* ¤­ */
-		else if (key == 24) return 12;	/* ¤® */
-		else if (key == 25) return 13;	/* ¤¯ */
-		else if (key == 26) return 14;	/* ¤° */
+		if (key == 0) return 8;			/* ã„º */
+		else if (key == 15) return 9;	/* ã„» */
+		else if (key == 16) return 10;	/* ã„¼ */
+		else if (key == 18) return 11;	/* ã„½ */
+		else if (key == 24) return 12;	/* ã„¾ */
+		else if (key == 25) return 13;	/* ã„¿ */
+		else if (key == 26) return 14;	/* ã…€ */
 		break;
 	}
 	return -1;
