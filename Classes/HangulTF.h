@@ -26,17 +26,19 @@ protected:
 	int calcVowel(int key);
 	int calcJong(int key);
 	int jongToCho(int jong);
+	int splitJungComplex();
 	int splitJongComplex();
 	int calcJungComplex(int key);
 	int calcJongComplex(int key);
 	void clearState();
 
-	static const std::string ENG;
+	static const std::string ENG, ENG_JUNG, ENG_JONG;
 	static const std::u16string CHO, JUNG, JONG;
 
 	bool hangulMode = true;
 
 	int state = 0, cho = -1, jung = -1, jong = -1;
+	int prevState = 0, prevCho = -1, prevJung = -1, prevJong = -1;
 };
 
 #endif

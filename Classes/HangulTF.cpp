@@ -16,6 +16,8 @@ USING_NS_CC;
 using namespace std;
 
 const std::string HangulTF::ENG = "rRseEfaqQtTdwWczxvgkoiOjpuPhynbml";
+const std::string HangulTF::ENG_JUNG = "koiOjpuPhXXXynXXXbmXl";
+const std::string HangulTF::ENG_JONG = "rRXsXXefXXXXXXXaqXtTdwczxvg";
 const std::u16string HangulTF::CHO = u"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 const std::u16string HangulTF::JUNG = u"ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
 const std::u16string HangulTF::JONG = u"ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ";
@@ -191,8 +193,67 @@ void HangulTF::deleteBack() {
 }
 
 void HangulTF::deleteBackward() {
-	deleteBack();
-	clearState();
+	int tmp = -1;
+
+	switch (state) {
+	case 0:
+	case 1:
+	case 2:
+		deleteBack();
+		cho = -1;
+		jung = -1;
+		jong = -1;
+		state = 0;
+		break;
+	case 3:
+		deleteBack();
+		tmp = cho;
+		cho = -1;
+		jung = -1;
+		state = 0;
+		insertText(string(1, ENG[tmp]).c_str(), 1);
+		break;
+	case 4:
+		deleteBack();
+		splitJungComplex();
+		tmp = jung;
+		cho = -1;
+		jung = -1;
+		state = 0;
+		insertText(string(1, ENG_JUNG[tmp]).c_str(), 1);
+		break;
+	case 5:
+		jong = -1;
+		state = 1;
+		insertText(string(1, ENG_JUNG[jung]).c_str(), 1);
+		break;
+	case 6:
+		splitJungComplex();
+		jong = -1;
+		state = 1;
+		insertText(string(1, ENG_JUNG[jung]).c_str(), 1); 
+		break;
+	case 7:
+		splitJongComplex();
+		tmp = jong;
+		jong = -1;
+		state = 3;
+		insertText(string(1, ENG_JONG[tmp]).c_str(), 1);
+		break;
+	case 8:
+		tmp = splitJungComplex();
+		jong = -1;
+		state = 3;
+		insertText(string(1, ENG_JUNG[tmp]).c_str(), 1);
+		break;
+	case 9:
+		splitJongComplex();
+		tmp = jong;
+		jong = -1;
+		state = 6;
+		insertText(string(1, ENG_JONG[tmp]).c_str(), 1);
+		break;
+	}
 }
 
 void HangulTF::controlKey(EventKeyboard::KeyCode keyCode) {
@@ -267,6 +328,12 @@ string HangulTF::hangulAutomata(const string& str) {
 		std::transform(insert.begin(), insert.end(), insert.begin(), ::tolower);
 		key = ENG.find(insert);
 	}
+
+	prevState = state;
+	prevCho = cho;
+	prevJung = jung;
+	prevJong = jong;
+
 	switch (state) {
 	case 0:
 		if (key <= 18) { /// 자음
@@ -535,6 +602,19 @@ int HangulTF::jongToCho(int jong) {
 	case 26: return 18;	/* ㅎ */
 	}
 	return jong;
+}
+
+int HangulTF::splitJungComplex() {
+	switch (jung) {
+	case 9: jung = 8; return 0;		/* ㅘ */
+	case 10: jung = 8; return 1;	/* ㅙ */
+	case 11: jung = 8; return 20;	/* ㅚ */
+	case 14: jung = 13; return 4;	/* ㅝ */
+	case 15: jung = 13; return 5;	/* ㅞ */
+	case 16: jung = 13; return 20;	/* ㅟ */
+	case 19: jung = 18; return 20;	/* ㅢ */
+	}
+	return -1;
 }
 
 int HangulTF::splitJongComplex() {
