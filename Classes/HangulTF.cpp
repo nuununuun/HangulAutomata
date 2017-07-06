@@ -22,12 +22,6 @@ const std::u16string HangulTF::CHO = u"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈ�
 const std::u16string HangulTF::JUNG = u"ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
 const std::u16string HangulTF::JONG = u"ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ";
 
-string toUTF8(const std::u16string & u16) {
-	string ret;
-	StringUtils::UTF16ToUTF8(u16, ret);
-	return ret;
-}
-
 HangulTF::HangulTF() {
 	_delegate = 0;
 	_charCount = 0;
@@ -328,11 +322,6 @@ string HangulTF::hangulAutomata(const string& str) {
 		std::transform(insert.begin(), insert.end(), insert.begin(), ::tolower);
 		key = ENG.find(insert);
 	}
-
-	prevState = state;
-	prevCho = cho;
-	prevJung = jung;
-	prevJong = jong;
 
 	switch (state) {
 	case 0:

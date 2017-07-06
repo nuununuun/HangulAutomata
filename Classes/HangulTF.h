@@ -1,9 +1,7 @@
-﻿#ifndef _HANGUL_H_
-#define _HANGUL_H_
+﻿#ifndef _HANGULTF_H_
+#define _HANGULTF_H_
 
 #include "2d/CCTextFieldTTF.h"
-
-std::string toUTF8(const std::u16string &u16);
 
 class HangulTF : public cocos2d::TextFieldTTF {
 public:
@@ -38,7 +36,6 @@ protected:
 	bool hangulMode = true;
 
 	int state = 0, cho = -1, jung = -1, jong = -1;
-	int prevState = 0, prevCho = -1, prevJung = -1, prevJong = -1;
 };
 
 #endif
